@@ -57,13 +57,20 @@ if __name__ == "__main__":
         def my_method(self) -> bool:
             return True
 
+    # doesnt work out of the box...
+    my_bound_method = MyClass().my_method
+    print(return_instance_of_bound_method(my_bound_method))
+    print(return_class_of_bound_method(my_bound_method))
+    print(run_bounded_method(my_bound_method))
+
+    # you need to use typing.cast() for it to work...
     my_bound_method = type_bound_method(MyClass().my_method)
     print(return_instance_of_bound_method(my_bound_method))
     print(return_class_of_bound_method(my_bound_method))
     print(run_bounded_method(my_bound_method))
 
+    # let's try one more example
     from pathlib import Path
-
     my_bound_method = type_bound_method(Path().joinpath)
     print(return_instance_of_bound_method(my_bound_method))
     print(return_class_of_bound_method(my_bound_method))
