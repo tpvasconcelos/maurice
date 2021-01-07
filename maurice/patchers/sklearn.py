@@ -10,4 +10,4 @@ logger = logging.getLogger(__name__)
 def caching_patch_sklearn_estimators() -> None:
     logger.debug("Patching sklearn estimators (CACHING)...")
     for cls in tuple(zip(*all_estimators()))[1]:
-        patch_method_with_caching(name="fit", cls=cls)
+        patch_method_with_caching(name="fit", cls=cls, save_state=True)
