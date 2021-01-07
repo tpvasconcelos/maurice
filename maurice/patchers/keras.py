@@ -2,11 +2,11 @@ import logging
 
 from tensorflow.python.keras.models import Model
 
-from maurice.patchers.core import wrap_fit_method
+from maurice.patchers.core import patch_method_with_caching
 
 logger = logging.getLogger(__name__)
 
 
-def patch_keras_models() -> None:
-    logger.debug("Patching Keras models...")
-    wrap_fit_method(classes=(Model,))
+def caching_patch_keras_models() -> None:
+    logger.debug("Patching Keras' Model (CACHING)...")
+    patch_method_with_caching(name="fit", cls=Model)

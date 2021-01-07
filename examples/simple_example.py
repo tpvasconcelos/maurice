@@ -7,7 +7,6 @@ from time import time
 
 import numpy as np
 
-breakpoint()
 logging.basicConfig(level="DEBUG")
 
 
