@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "maurice"
-version = "0.1.10"
+version = "0.1.11"
 description = "Ship better machine learning projects, faster!"
 authors = ["Tomas Pereira de Vasconcelos <tomasvasconcelos1@gmail.com>"]
 homepage = "https://github.com/tpvasconcelos/maurice"
