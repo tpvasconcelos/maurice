@@ -19,13 +19,14 @@ class CachingMethodWrapper(object):
         self._kwargs = kwargs
         self._save_state = save_state
 
+        state_string = hash_any(self._get_instance_state()) if self._save_state else "ignore_state"
         self._path_to_cached_method = CACHE_DIR.joinpath(
             # path to module
             *type(instance).__module__.split("."),
             # class name
             type(instance).__name__,
             # instance state hash
-            hash_any(self._get_instance_state()),
+            state_string,
             # instance method name
             method.__name__,
             # args and kwargs hash
