@@ -50,7 +50,7 @@ class CachingMethodWrapper(BaseMethodWrapper):
 
     def _get_instance_state(self) -> dict:
         if hasattr(self._instance, "__getstate__"):
-            state: dict = getattr(self._instance, "__getstate__")
+            state: dict = getattr(self._instance, "__getstate__")()
         else:
             state = self._instance.__dict__
         return state
