@@ -1,6 +1,6 @@
 import sys
 from typing import Any, Callable, NewType, Type, TypeVar, cast
-if sys.version_info.minor >= 7:
+if sys.version_info.minor >= 8:
     from typing import Protocol
 else:
     from typing_extensions import Protocol
