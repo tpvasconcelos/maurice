@@ -1,15 +1,15 @@
 # Maurice
 
 
-## Installation
+## Installing
 
-### Using pypi
+Install and update using `pip`:
 
 ```shell
 pip install -U maurice
 ```
 
-## Integrate it with your workflow
+## Simple Examples
 
 ### Automatic caching
 
