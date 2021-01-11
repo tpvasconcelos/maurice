@@ -21,6 +21,7 @@ class BaseMethodWrapper(metaclass=ABCMeta):
         - The `_args` and `_kwargs` methods belong to the private API and therefore accessible to all subclasses of
         `BaseMethodWrapper`. This way, you are able to overwrite or mutate them before a method call.
     """
+
     def __init__(self, method: BoundMethodType, args: tuple, kwargs: dict):
         self.__method: BoundMethodType = method
         self._args: tuple = args
