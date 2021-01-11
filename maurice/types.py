@@ -1,5 +1,6 @@
 import sys
 from typing import Any, Callable, NewType, Type, TypeVar, cast
+
 if sys.version_info.minor >= 8:
     from typing import Protocol
 else:
@@ -77,6 +78,7 @@ if __name__ == "__main__":
 
     # let's try one more example
     from pathlib import Path
+
     my_bound_method = type_bound_method(Path().joinpath)
     print(return_instance_of_bound_method(my_bound_method))
     print(return_class_of_bound_method(my_bound_method))
