@@ -6,6 +6,13 @@
 - Add ability to unpatch objects
 - Add context manager to temporarily add or remove patches
 
+### General Data Science
+- Smart-bins from input data
+
+### pandas
+
+- did you mean `.value_counts()` ?
+- Styling preset
 
 ## Bugs
 
