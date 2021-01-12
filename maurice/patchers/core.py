@@ -100,7 +100,7 @@ class CachingMethodWrapper(BaseMethodWrapper):
 
 def _caching_method_wrapper(
     method: BoundMethodType, _: BoundMethodInstanceType, args: tuple, kwargs: dict, save_state: bool
-) -> BoundMethodReturnType:
+) -> Any:
     return CachingMethodWrapper(method=method, args=args, kwargs=kwargs, save_state=save_state).run()
 
 

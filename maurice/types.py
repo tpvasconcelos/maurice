@@ -1,11 +1,19 @@
-import sys
 from typing import Any, Callable, NewType, Type, TypeVar, cast
 
-if sys.version_info.minor >= 8:
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
+from typing import Union
 
+from numpy import ndarray
+from pandas import Index, Series
+from pandas.core.arrays import ExtensionArray
+
+# Protocol is only available in Python 3.8+.
+try:
+    from typing import Protocol
+except ImportError:
+    from typing_extensions import Protocol  # type: ignore
+
+
+ArrayLike = Union[ndarray, ExtensionArray, Index, Series]
 
 # ===================================================
 # StatefulClass(Protocol)
@@ -65,10 +73,10 @@ if __name__ == "__main__":
             return True
 
     # doesnt work out of the box...
-    my_bound_method = MyClass().my_method
-    print(return_instance_of_bound_method(my_bound_method))
-    print(return_class_of_bound_method(my_bound_method))
-    print(run_bounded_method(my_bound_method))
+    # my_bound_method = MyClass().my_method
+    # print(return_instance_of_bound_method(my_bound_method))
+    # print(return_class_of_bound_method(my_bound_method))
+    # print(run_bounded_method(my_bound_method))
 
     # you need to use typing.cast() for it to work...
     my_bound_method = type_bound_method(MyClass().my_method)
