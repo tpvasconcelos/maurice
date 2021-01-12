@@ -14,7 +14,7 @@ def is_discrete(data: ArrayLike) -> bool:
     passed, this function returns `True` if and only if all elements do not contain a fractional part.
     """
     data = np.asarray(data)
-    return np.all(np.mod(data, 1) == 0)
+    return bool(np.all(np.mod(data, 1) == 0))
 
 
 def is_continuous(data: ArrayLike) -> bool:

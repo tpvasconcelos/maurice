@@ -1,8 +1,22 @@
 import numpy as np
 import pytest
 
-from maurice.helpers import compare_smart_bins, is_discrete, smart_bins
+from maurice.helpers import compare_smart_bins, is_continuous, is_discrete, smart_bins
 from maurice.types import ArrayLike
+
+
+@pytest.mark.parametrize(
+    "data,expected", (([1, 2, 3, 4], True), ([1.0, 2.0, 3.0, 4.0], True), ([1.2, 2, 3, 4], False))
+)
+def test_is_discrete(data, expected) -> None:
+    assert is_discrete(data) is expected
+
+
+@pytest.mark.parametrize(
+    "data,expected", (([1, 2, 3, 4], False), ([1.0, 2.0, 3.0, 4.0], False), ([1.2, 2, 3, 4], True))
+)
+def test_is_continuous(data, expected) -> None:
+    assert is_continuous(data) is expected
 
 
 data = [
