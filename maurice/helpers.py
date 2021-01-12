@@ -38,11 +38,10 @@ def smart_bins(data: ArrayLike, method: str = "freedman–diaconis") -> int:
     """
     data = np.asarray(data)
     n_observations = data.size
-    data_range = np.max(data) - np.min(data)
 
     def get_nbins(bin_width: float) -> int:
         # The number of bins can be calculated from a given bin-width
-        return math.ceil(data_range / bin_width)
+        return math.ceil(np.max(data) - np.min(data) / bin_width)
 
     # These first 4 method calculate the number of bins
     # directly (bypassing calculating the bin-width first)
@@ -73,7 +72,7 @@ def smart_bins(data: ArrayLike, method: str = "freedman–diaconis") -> int:
     n_bins = min(n_bins, np.unique(data).size)
     # TODO: Alternatively, only for discrete data
     # if is_discrete(data):
-    #     n_bins = min(data_range, n_bins)
+    #     n_bins = min(1 + np.max(data) - np.min(data), n_bins)
 
     return n_bins
 

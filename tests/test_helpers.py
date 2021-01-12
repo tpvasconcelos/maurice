@@ -1,7 +1,9 @@
+from itertools import product
+
 import numpy as np
 import pytest
 
-from maurice.helpers import compare_smart_bins, is_continuous, is_discrete, smart_bins
+from maurice.helpers import SMART_BIN_METHODS, compare_smart_bins, is_continuous, is_discrete, smart_bins
 from maurice.types import ArrayLike
 
 
@@ -28,21 +30,15 @@ data = [
 
 
 @pytest.mark.parametrize(
-    "data,method,expected_return",
-    (
-        (data[2], "sqrt", 19),
-        (data[2], "rice", 19),
-        (data[2], "doane", 19),
-        (data[2], "scott", 19),
-        (data[2], "freedman–diaconis", 19),
-    ),
+    "data,method",
+    (product(data, SMART_BIN_METHODS)),
 )
-def test_smart_bins(data: ArrayLike, method: str, expected_return) -> None:
+def test_smart_bins(data: ArrayLike, method: str) -> None:
     bins = smart_bins(data=data, method=method)
     assert isinstance(bins, int)
     assert bins <= np.unique(data).size
     if is_discrete(data):
-        assert bins <= np.max(data) - np.min(data)
+        assert bins <= 1 + np.max(data) - np.min(data)
 
 
 @pytest.mark.parametrize("i,data", (*enumerate(data),))

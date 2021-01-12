@@ -1,5 +1,5 @@
 import logging
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 from functools import partial
 from typing import Any, Optional
 

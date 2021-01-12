@@ -1,6 +1,4 @@
-from typing import Any, Callable, NewType, Type, TypeVar, cast
-
-from typing import Union
+from typing import Any, Callable, NewType, Type, TypeVar, Union, cast
 
 from numpy import ndarray
 from pandas import Index, Series
@@ -11,7 +9,6 @@ try:
     from typing import Protocol
 except ImportError:
     from typing_extensions import Protocol  # type: ignore
-
 
 ArrayLike = Union[ndarray, ExtensionArray, Index, Series]
 
