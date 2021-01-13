@@ -41,7 +41,9 @@ class BaseMethodWrapper(metaclass=ABCMeta):
 
     def run(self) -> Any:
         result = None
-        if self._run_before():
+        run_before_result = self._run_before()
+        assert isinstance(run_before_result, bool)
+        if run_before_result:
             result = self.__method(*self._args, **self._kwargs)
         return self._run_after(result=result)
 
@@ -84,7 +86,7 @@ class CachingMethodWrapper(BaseMethodWrapper):
         return not self._path_to_cached_method.exists()
 
     def _run_after(self, result: Optional[BoundMethodReturnType]) -> Any:
-        if result:
+        if result is not None:
             logger.info(f"Saving cache to: {self._path_to_cached_method}")
             self._path_to_cached_method.mkdir(parents=True, exist_ok=False)
             if self._save_state:
