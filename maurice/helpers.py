@@ -41,7 +41,7 @@ def smart_bins(data: ArrayLike, method: str = "freedman–diaconis") -> int:
 
     def get_nbins(bin_width: float) -> int:
         # The number of bins can be calculated from a given bin-width
-        return math.ceil(np.max(data) - np.min(data) / bin_width)
+        return math.ceil((np.max(data) - np.min(data)) / bin_width)
 
     # These first 4 method calculate the number of bins
     # directly (bypassing calculating the bin-width first)
