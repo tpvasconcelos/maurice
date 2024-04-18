@@ -8,7 +8,7 @@ exclude: |
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.5.0
+    rev: v4.6.0
     hooks:
       - id: check-ast
         description: Simply check whether files parse as valid python.
@@ -40,18 +40,15 @@ repos:
 
   # format python code using black, and check PEP8 with flake8
   - repo: https://github.com/psf/black
-    rev: stable
+    rev: '24.4.0'
     hooks:
       - id: black
         description: The uncompromising Python code formatter
-        language_version: python3.7
+        language_version: python3.8
         #args: ['--force-exclude'] after PR merge: https://github.com/psf/black/pull/1032
-  - repo: https://gitlab.com/pycqa/flake8
-    hooks:
-      - id: flake8
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: ''
+    rev: 'v1.9.0'
     hooks:
       - id: mypy
         args: [--config-file,  mypy.ini]
