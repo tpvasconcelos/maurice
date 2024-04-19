@@ -22,6 +22,7 @@ While these examples give some intuition about the
 algorithms, this intuition might not apply to very high
 dimensional data.
 """
+
 from maurice import patch
 
 patch()
@@ -57,7 +58,9 @@ X_aniso = np.dot(X, transformation)
 aniso = (X_aniso, y)
 
 # blobs with varied variances
-varied = datasets.make_blobs(n_samples=n_samples, cluster_std=[1.0, 2.5, 0.5], random_state=random_state)
+varied = datasets.make_blobs(
+    n_samples=n_samples, cluster_std=[1.0, 2.5, 0.5], random_state=random_state
+)
 
 # ============
 # Set up cluster parameters
@@ -139,7 +142,9 @@ for i_dataset, (dataset, algo_params) in enumerate(datasets):
     # ============
     ms = cluster.MeanShift(bandwidth=bandwidth, bin_seeding=True)
     two_means = cluster.MiniBatchKMeans(n_clusters=params["n_clusters"])
-    ward = cluster.AgglomerativeClustering(n_clusters=params["n_clusters"], linkage="ward", connectivity=connectivity)
+    ward = cluster.AgglomerativeClustering(
+        n_clusters=params["n_clusters"], linkage="ward", connectivity=connectivity
+    )
     spectral = cluster.SpectralClustering(
         n_clusters=params["n_clusters"],
         eigen_solver="arpack",
@@ -151,7 +156,9 @@ for i_dataset, (dataset, algo_params) in enumerate(datasets):
         xi=params["xi"],
         min_cluster_size=params["min_cluster_size"],
     )
-    affinity_propagation = cluster.AffinityPropagation(damping=params["damping"], preference=params["preference"])
+    affinity_propagation = cluster.AffinityPropagation(
+        damping=params["damping"], preference=params["preference"]
+    )
     average_linkage = cluster.AgglomerativeClustering(
         linkage="average",
         affinity="cityblock",
@@ -188,7 +195,8 @@ for i_dataset, (dataset, algo_params) in enumerate(datasets):
             )
             warnings.filterwarnings(
                 "ignore",
-                message="Graph is not fully connected, spectral embedding" + " may not work as expected.",
+                message="Graph is not fully connected, spectral embedding"
+                + " may not work as expected.",
                 category=UserWarning,
             )
             algorithm.fit(X)

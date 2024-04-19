@@ -2,15 +2,34 @@ import logging
 from abc import ABCMeta
 from functools import partial
 from typing import Any, Optional
+from dataclasses import dataclass, field
 
 import dill
 import wrapt
 
 from maurice.caching import CACHE_DIR
-from maurice.types import BoundMethodClassType, BoundMethodInstanceType, BoundMethodReturnType, BoundMethodType
+from maurice.types import (
+    BoundMethodClassType,
+    BoundMethodInstanceType,
+    BoundMethodReturnType,
+    BoundMethodType,
+)
 from maurice.utils import hash_any
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ArgsKwargs:
+    args: tuple = field(default_factory=tuple)
+    kwargs: dict = field(default_factory=dict)
+
+
+@dataclass
+class RunBeforeResult:
+    run_wrapped_method: bool = True
+    run_after_callback: bool = True
+    new_args_kwargs: Optional[ArgsKwargs] = None
 
 
 class BaseMethodWrapper(metaclass=ABCMeta):
@@ -31,27 +50,30 @@ class BaseMethodWrapper(metaclass=ABCMeta):
     def _instance(self) -> BoundMethodInstanceType:
         return self.__method.__self__
 
-    # noinspection PyMethodMayBeStatic
-    def _run_before(self) -> bool:
-        return True
+    def _run_before(self) -> RunBeforeResult:
+        return RunBeforeResult()
 
-    # noinspection PyMethodMayBeStatic
     def _run_after(self, result: Optional[BoundMethodReturnType]) -> Any:
         return result
 
     def run(self) -> Any:
         result = None
         run_before_result = self._run_before()
-        assert isinstance(run_before_result, bool)
-        if run_before_result:
-            result = self.__method(*self._args, **self._kwargs)
-        return self._run_after(result=result)
+        if run_before_result.run_wrapped_method:
+            if run_before_result.new_args_kwargs is not None:
+                args, kwargs = run_before_result.new_args_kwargs
+            else:
+                args, kwargs = self._args, self._kwargs
+            result = self.__method(*args, **kwargs)
+        if run_before_result.run_after_callback:
+            result = self._run_after(result=result)
+        return result
 
 
 class CachingMethodWrapper(BaseMethodWrapper):
     def __init__(self, method: BoundMethodType, args: tuple, kwargs: dict, save_state: bool):
         super(CachingMethodWrapper, self).__init__(method=method, args=args, kwargs=kwargs)
-        self._save_state: bool = save_state
+        self._save_state = save_state
 
         state_string = hash_any(self._get_instance_state()) if self._save_state else "ignore_state"
         self._path_to_cached_method = CACHE_DIR.joinpath(
@@ -82,8 +104,10 @@ class CachingMethodWrapper(BaseMethodWrapper):
         else:
             self._instance.__dict__.update(state)
 
-    def _run_before(self) -> bool:
-        return not self._path_to_cached_method.exists()
+    def _run_before(self) -> RunBeforeResult:
+        return RunBeforeResult(
+            run_wrapped_method=not self._path_to_cached_method.exists(),
+        )
 
     def _run_after(self, result: Optional[BoundMethodReturnType]) -> Any:
         if result is not None:
@@ -103,7 +127,9 @@ class CachingMethodWrapper(BaseMethodWrapper):
 def _caching_method_wrapper(
     method: BoundMethodType, _: BoundMethodInstanceType, args: tuple, kwargs: dict, save_state: bool
 ) -> Any:
-    return CachingMethodWrapper(method=method, args=args, kwargs=kwargs, save_state=save_state).run()
+    return CachingMethodWrapper(
+        method=method, args=args, kwargs=kwargs, save_state=save_state
+    ).run()
 
 
 def patch_method_by_name(name: str, cls: type) -> None:

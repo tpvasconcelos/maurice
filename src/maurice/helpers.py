@@ -77,7 +77,9 @@ def smart_bins(data: ArrayLike, method: str = "freedman–diaconis") -> int:
     return n_bins
 
 
-def compare_smart_bins(data: ArrayLike, subplots_kwargs: dict = None, hist_kwargs: dict = None) -> Figure:
+def compare_smart_bins(
+    data: ArrayLike, subplots_kwargs: dict = None, hist_kwargs: dict = None
+) -> Figure:
     """
 
     Parameters

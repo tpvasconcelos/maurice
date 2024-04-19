@@ -18,11 +18,9 @@ ArrayLike = Union[ndarray, ExtensionArray, Index, Series]
 
 
 class StatefulClass(Protocol):
-    def __getstate__(self) -> dict:
-        ...
+    def __getstate__(self) -> dict: ...
 
-    def __setstate__(self, state: dict) -> None:
-        ...
+    def __setstate__(self, state: dict) -> None: ...
 
 
 # ===================================================
@@ -39,8 +37,7 @@ class BoundMethodType(Protocol):
     __name__: str
     __self__: BoundMethodInstanceType
 
-    def __call__(self, *args: Any, **kwargs: Any) -> BoundMethodReturnType:
-        ...
+    def __call__(self, *args: Any, **kwargs: Any) -> BoundMethodReturnType: ...
 
 
 def type_bound_method(bound_method: Callable[..., BoundMethodReturnType]) -> BoundMethodType:
@@ -59,7 +56,9 @@ if __name__ == "__main__":
     def return_class_of_bound_method(method: BoundMethodType) -> BoundMethodClassType:
         return method.__self__.__class__
 
-    def run_bounded_method(method: BoundMethodType, *args: Any, **kwargs: Any) -> BoundMethodReturnType:
+    def run_bounded_method(
+        method: BoundMethodType, *args: Any, **kwargs: Any
+    ) -> BoundMethodReturnType:
         return method(*args, **kwargs)
 
     class MyClass:
@@ -69,7 +68,7 @@ if __name__ == "__main__":
         def my_method(self) -> bool:
             return True
 
-    # doesnt work out of the box...
+    # doesn't work out of the box...
     # my_bound_method = MyClass().my_method
     # print(return_instance_of_bound_method(my_bound_method))
     # print(return_class_of_bound_method(my_bound_method))

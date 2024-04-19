@@ -1,64 +1,90 @@
 default_language_version:
-  python: python3
-
-exclude: |
-  (?x)(
-    ^venv/|
-  )
+    python: python3.8
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v4.5.0
     hooks:
-      - id: check-ast
-        description: Simply check whether files parse as valid python.
-      - id: check-builtin-literals
-        description: Require literal syntax when initializing empty, or zero Python builtin types.
-      - id: check-docstring-first
-        description: Checks for a common error of placing code before the docstring.
       - id: check-added-large-files
-        description: Prevent giant files from being committed.
-        args: ['--maxkb=1024']
+        args: [ '--maxkb=500' ]
+      - id: check-executables-have-shebangs
+      - id: check-json
       - id: check-merge-conflict
-        description: Check for files that contain merge conflict strings.
+      - id: check-shebang-scripts-are-executable
       - id: check-symlinks
-        description: Checks for symlinks which do not point to anything.
+      - id: check-toml
+      - id: check-vcs-permalinks
       - id: check-yaml
-        description: Attempts to load all yaml files to verify syntax.
-        exclude_types: ['binary']
-      - id: debug-statements
-        description: Check for debugger imports and py37+ breakpoint() calls in python source.
+      - id: destroyed-symlinks
       - id: detect-private-key
-        description: Checks for the existence of private keys.
       - id: end-of-file-fixer
-        description: Makes sure files end in a newline and only a newline.
-      #    - id: mixed-line-ending
+      - id: fix-byte-order-marker
+      - id: pretty-format-json
+        args: [ --autofix, --no-sort-keys ]
+        # ignore all jupyter notebooks
+        exclude: ^.*\.ipynb$
+      - id: pretty-format-json
+        args: [ --autofix, --no-sort-keys, --indent=1, --no-ensure-ascii ]
+        # only jupyter notebooks
+        files: ^.*\.ipynb$
       - id: trailing-whitespace
-        description: Trims trailing whitespace
-      - id: requirements-txt-fixer
-        description: Sorts entries in requirements.txt
+        exclude: .bumpversion.cfg
 
-  # format python code using black, and check PEP8 with flake8
-  - repo: https://github.com/psf/black
-    rev: '24.4.0'
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
     hooks:
-      - id: black
-        description: The uncompromising Python code formatter
-        language_version: python3.8
-        #args: ['--force-exclude'] after PR merge: https://github.com/psf/black/pull/1032
+      - id: codespell
+        args: [ "-L", "probly" ]
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.9.0'
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
     hooks:
-      - id: mypy
-        args: [--config-file,  mypy.ini]
-        exclude: '(?x)(cron_scripts/migrations)'
+      - id: shellcheck
 
-  - repo: local
+  # mdformat is not enabled by default, but can be run manually with:
+  #   pre-commit run mdformat --all-files --hook-stage manual
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.17
     hooks:
-      - id: tests
-        name: tests
-        description: Run pytest
-        language: system
-        entry: pytest -sv
-        stages: [push]
+      - id: mdformat
+        stages: [ manual ]
+        files: '^docs/.*\.md$'
+        args: [ --check ]
+        additional_dependencies:
+          - mdformat-gfm
+          - mdformat-myst
+
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.16
+    hooks:
+      - id: validate-pyproject
+
+  - repo: https://github.com/mgedmin/check-manifest
+    rev: "0.49"
+    hooks:
+      - id: check-manifest
+        args: [ --no-build-isolation ]
+
+  # TODO: Add this back in once we can reconcile the different locked files into a single one
+  # - repo: https://github.com/peterdemin/pip-compile-multi
+  #   rev: v2.4.6
+  #   hooks:
+  #     - id: pip-compile-multi-verify
+  #       args: [ --backtracking, --out-ext, 38-darwin.txt ]
+
+  - repo: https://github.com/adamchainz/blacken-docs
+    rev: 1.16.0
+    hooks:
+      - id: blacken-docs
+
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 24.2.0
+    hooks:
+      - id: black-jupyter
+
+  # - repo: https://github.com/astral-sh/ruff-pre-commit
+  #   rev: v0.2.2
+  #   hooks:
+  #     - id: ruff
+  #       args: [ --show-fixes, --exit-non-zero-on-fix ]
+  #       types_or: [ python, pyi, jupyter ]

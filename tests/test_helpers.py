@@ -3,7 +3,13 @@ from itertools import product
 import numpy as np
 import pytest
 
-from maurice.helpers import SMART_BIN_METHODS, compare_smart_bins, is_continuous, is_discrete, smart_bins
+from maurice.helpers import (
+    SMART_BIN_METHODS,
+    compare_smart_bins,
+    is_continuous,
+    is_discrete,
+    smart_bins,
+)
 from maurice.types import ArrayLike
 
 

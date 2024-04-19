@@ -13,7 +13,11 @@ from maurice.utils import hash_any
         ("Hello, World!", "4b25fee49251a68a90b925dc611a4f8d"),
         # a more complex and nexted object
         (
-            [(1, 2, 3), open(Path(__file__)), {"a": 1, 1: "a", "nested": {"I": "am", "nested": "indeed"}}],
+            [
+                (1, 2, 3),
+                open(Path(__file__)),
+                {"a": 1, 1: "a", "nested": {"I": "am", "nested": "indeed"}},
+            ],
             "4d971d65f46874157044418fe1fe9097",
         ),
     ),

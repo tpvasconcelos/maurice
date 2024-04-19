@@ -1,71 +1,70 @@
-[tool.poetry]
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
 name = "maurice"
-version = "0.1.16"
 description = "Ship better machine learning projects, faster!"
-authors = ["Tomas Pereira de Vasconcelos <tomasvasconcelos1@gmail.com>"]
-homepage = "https://github.com/tpvasconcelos/maurice"
-repository = "https://github.com/tpvasconcelos/maurice"
-#documentation = "..."
-#download_url = "..."
-
+version = "0.1.16"
+authors = [
+    { name = "Tomas Pereira de Vasconcelos" }
+]
+maintainers = [
+    { name = "Tomas Pereira de Vasconcelos", email = "tomasvasconcelos1@gmail.com" }
+]
 readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Typing :: Typed",
+]
+keywords = [
+    "machine learning", "cache", "caching", "memoization", "monkey patching", "data science",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "dill",
+    "wrapt",
+    "numpy",
+    "scipy",
+    'typing-extensions; python_version<"3.10"',
+    'importlib-resources; python_version<"3.10"',
+]
 
-
-[tool.poetry.dependencies]
-python = ">=3.8, <4.0.0"
-dill = "*"
-wrapt = "*"
-numpy = "*"
-scipy = "*"
-scikit-learn = { version = "*", optional = true }
-tensorflow = { version = "*", optional = true }
-pandas = { version = "*", optional = true }
-
-[tool.poetry.extras]
+[project.optional-dependencies]
 sklearn = ["scikit-learn"]
 tensorflow = ["tensorflow"]
 pandas = ["pandas"]
 all = ["scikit-learn", "tensorflow", "pandas"]
 
-[tool.poetry.dev-dependencies]
-black = "*"
-mypy = "*"
-matplotlib = "*"
-ipython = "*"
-deepdiff = "*"
-tox = "*"
-pytest = "*"
+[project.urls]
+Homepage = "https://github.com/tpvasconcelos/maurice"
+"Source code" = "https://github.com/tpvasconcelos/maurice"
+"Issue Tracker" = "https://github.com/tpvasconcelos/maurice/issues"
 
+# TODO: Update config based on:
+#       https://setuptools.pypa.io/en/latest/userguide/datafiles.html#subdirectory-for-data-files
+#[tool.setuptools.package-data]
+#"ridgeplot.datasets.data" = ["*.csv"]
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = false
 
 [tool.black]
-line-length = 119
-target-version = ['py37']
+line-length = 100
 include = '\.pyi?$'
-exclude = '''
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-    | \.git-crypt
-    | \.cache
-    | \.pytest_cache
-    | \.idea
-    | \.circleci
-  )/
-  | foo.py           # also separately exclude a file named foo.py in
-                     # the root of the project
-)
-'''
