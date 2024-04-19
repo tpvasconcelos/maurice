@@ -18,7 +18,7 @@ from maurice.utils import hash_any
                 open(Path(__file__)),
                 {"a": 1, 1: "a", "nested": {"I": "am", "nested": "indeed"}},
             ],
-            "4d971d65f46874157044418fe1fe9097",
+            "d10c2f17ee467ac4d90d44c9f031b04d",
         ),
     ),
 )

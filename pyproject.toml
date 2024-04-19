@@ -49,7 +49,7 @@ dependencies = [
 sklearn = ["scikit-learn"]
 tensorflow = ["tensorflow"]
 pandas = ["pandas"]
-all = ["scikit-learn", "tensorflow", "pandas"]
+all = ["sklearn", "tensorflow", "pandas"]
 
 [project.urls]
 Homepage = "https://github.com/tpvasconcelos/maurice"

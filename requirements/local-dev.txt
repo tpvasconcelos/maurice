@@ -1,7 +1,16 @@
-# Install python package in editable mode
--e file:.[scikit-learn,tensorflow,pandas]
+# Install python package in editable mode with all extras
+-e file:.
 
 tox
+
+# extras (TODO: infer from .[...] above)
+scikit-learn
+tensorflow
+pandas
+matplotlib
+
+# pytest and plugins
+pytest
 
 # pre-commit and dependency management
 pre-commit
