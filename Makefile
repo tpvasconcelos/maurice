@@ -60,7 +60,7 @@ _check-sys: ## Check system requirements
 
 $(VENV_PATH): _check-sys ## create a virtual environment
 	@echo "==> Creating local virtual environment under: $(VENV_PATH)/ ($(BASE_PYTHON))"
-	@uv venv $(_UV_OFFLINE_ARG) --python="$(BASE_PYTHON)" --seed "$(VENV_PATH)" --clear
+	@uv venv $(_UV_OFFLINE_ARG) --python="$(BASE_PYTHON)" --seed "$(VENV_PATH)"
 
 
 .PHONY: install
