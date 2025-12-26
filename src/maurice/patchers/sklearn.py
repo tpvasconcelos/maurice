@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from sklearn.utils import all_estimators

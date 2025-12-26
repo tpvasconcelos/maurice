@@ -1,7 +1,5 @@
-# Install python package in editable mode with all extras
+# Install python package in editable mode
 -e file:.
-
-tox
 
 # extras (TODO: infer from .[...] above)
 scikit-learn
@@ -9,12 +7,15 @@ tensorflow
 pandas
 matplotlib
 
-# pytest and plugins
-pytest
+# build dependencies
+setuptools>=64
+setuptools-scm>=8
 
-# pre-commit and dependency management
+# Tox
+tox
+
+# pre-commit
 pre-commit
-pip-compile-multi
 
 # Releases are still a manual process that
 # requires the use of bumpversion locally
@@ -23,6 +24,11 @@ bumpversion
 # Various useful utilities for local development
 deepdiff
 ipython
-pip-tools
 pipdeptree
 ptpython
+
+# And everything else...
+-r cicd_utils.txt
+-r docs.txt
+-r typing.txt
+-r tests.txt

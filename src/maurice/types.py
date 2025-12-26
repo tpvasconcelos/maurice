@@ -1,8 +1,7 @@
-from typing import Any, Callable, NewType, Type, TypeVar, Union, cast
+from __future__ import annotations
 
-from numpy import ndarray
-from pandas import Index, Series
-from pandas.core.arrays import ExtensionArray
+from collections.abc import Callable
+from typing import Any, NewType, TypeVar, cast
 
 # Protocol is only available in Python 3.8+.
 try:
@@ -10,7 +9,6 @@ try:
 except ImportError:
     from typing_extensions import Protocol  # type: ignore
 
-ArrayLike = Union[ndarray, ExtensionArray, Index, Series]
 
 # ===================================================
 # StatefulClass(Protocol)
@@ -29,7 +27,7 @@ class StatefulClass(Protocol):
 
 
 BoundMethodInstanceType = NewType("BoundMethodInstanceType", object)
-BoundMethodClassType = Type[BoundMethodInstanceType]
+BoundMethodClassType = type[BoundMethodInstanceType]
 BoundMethodReturnType = TypeVar("BoundMethodReturnType")
 
 
@@ -40,8 +38,10 @@ class BoundMethodType(Protocol):
     def __call__(self, *args: Any, **kwargs: Any) -> BoundMethodReturnType: ...
 
 
-def type_bound_method(bound_method: Callable[..., BoundMethodReturnType]) -> BoundMethodType:
-    return cast(BoundMethodType, bound_method)
+def type_bound_method(
+    bound_method: Callable[..., BoundMethodReturnType],
+) -> BoundMethodType:
+    return cast("BoundMethodType", bound_method)
 
 
 # ===================================================
@@ -50,7 +50,9 @@ def type_bound_method(bound_method: Callable[..., BoundMethodReturnType]) -> Bou
 
 if __name__ == "__main__":
 
-    def return_instance_of_bound_method(method: BoundMethodType) -> BoundMethodInstanceType:
+    def return_instance_of_bound_method(
+        method: BoundMethodType,
+    ) -> BoundMethodInstanceType:
         return method.__self__
 
     def return_class_of_bound_method(method: BoundMethodType) -> BoundMethodClassType:

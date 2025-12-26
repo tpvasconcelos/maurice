@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from pandas.io.sql import SQLDatabase, SQLiteDatabase

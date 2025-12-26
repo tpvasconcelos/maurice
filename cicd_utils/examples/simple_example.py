@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from maurice import patch
 
 patch()
@@ -10,7 +12,7 @@ import numpy as np
 logging.basicConfig(level="DEBUG")
 
 
-def main():
+def main() -> None:
     from sklearn.svm import SVC
 
     X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])

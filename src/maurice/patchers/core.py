@@ -1,20 +1,22 @@
+from __future__ import annotations
+
 import logging
 from abc import ABCMeta
-from functools import partial
-from typing import Any, Optional
 from dataclasses import dataclass, field
+from functools import partial
+from typing import Any
 
 import dill
 import wrapt
 
 from maurice.caching import CACHE_DIR
+from maurice.hashing import hash_anything
 from maurice.types import (
     BoundMethodClassType,
     BoundMethodInstanceType,
     BoundMethodReturnType,
     BoundMethodType,
 )
-from maurice.utils import hash_any
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +31,13 @@ class ArgsKwargs:
 class RunBeforeResult:
     run_wrapped_method: bool = True
     run_after_callback: bool = True
-    new_args_kwargs: Optional[ArgsKwargs] = None
+    new_args_kwargs: ArgsKwargs | None = None
 
 
 class BaseMethodWrapper(metaclass=ABCMeta):
     """
-    Notes:
+    Notes
+    -----
         - The `__method` attribute should remain a `private` attribute. I cannot foresee the need to access `__method`
         from a subclass of  `BaseMethodWrapper`.
         - The `_args` and `_kwargs` methods belong to the private API and therefore accessible to all subclasses of
@@ -53,7 +56,7 @@ class BaseMethodWrapper(metaclass=ABCMeta):
     def _run_before(self) -> RunBeforeResult:
         return RunBeforeResult()
 
-    def _run_after(self, result: Optional[BoundMethodReturnType]) -> Any:
+    def _run_after(self, result: BoundMethodReturnType | None) -> Any:
         return result
 
     def run(self) -> Any:
@@ -75,7 +78,9 @@ class CachingMethodWrapper(BaseMethodWrapper):
         super(CachingMethodWrapper, self).__init__(method=method, args=args, kwargs=kwargs)
         self._save_state = save_state
 
-        state_string = hash_any(self._get_instance_state()) if self._save_state else "ignore_state"
+        state_string = (
+            hash_anything(self._get_instance_state()) if self._save_state else "ignore_state"
+        )
         self._path_to_cached_method = CACHE_DIR.joinpath(
             # path to module
             *type(self._instance).__module__.split("."),
@@ -86,21 +91,21 @@ class CachingMethodWrapper(BaseMethodWrapper):
             # instance method name
             method.__name__,
             # args and kwargs hash
-            hash_any((args, kwargs)),
+            hash_anything((args, kwargs)),
         )
         self._path_to_state = self._path_to_cached_method.joinpath("state.dill")
         self._path_to_result = self._path_to_cached_method.joinpath("result.dill")
 
     def _get_instance_state(self) -> dict:
         if hasattr(self._instance, "__getstate__"):
-            state: dict = getattr(self._instance, "__getstate__")()
+            state: dict = self._instance.__getstate__()
         else:
             state = self._instance.__dict__
         return state
 
     def _set_instance_state(self, state: dict) -> None:
         if hasattr(self._instance, "__setstate__"):
-            getattr(self._instance, "__setstate__")(state)
+            self._instance.__setstate__(state)
         else:
             self._instance.__dict__.update(state)
 
@@ -109,7 +114,7 @@ class CachingMethodWrapper(BaseMethodWrapper):
             run_wrapped_method=not self._path_to_cached_method.exists(),
         )
 
-    def _run_after(self, result: Optional[BoundMethodReturnType]) -> Any:
+    def _run_after(self, result: BoundMethodReturnType | None) -> Any:
         if result is not None:
             logger.info(f"Saving cache to: {self._path_to_cached_method}")
             self._path_to_cached_method.mkdir(parents=True, exist_ok=False)
@@ -125,7 +130,11 @@ class CachingMethodWrapper(BaseMethodWrapper):
 
 
 def _caching_method_wrapper(
-    method: BoundMethodType, _: BoundMethodInstanceType, args: tuple, kwargs: dict, save_state: bool
+    method: BoundMethodType,
+    _: BoundMethodInstanceType,
+    args: tuple,
+    kwargs: dict,
+    save_state: bool,
 ) -> Any:
     return CachingMethodWrapper(
         method=method, args=args, kwargs=kwargs, save_state=save_state

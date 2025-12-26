@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from maurice import patch
 
 patch()
 
 import tensorflow as tf
-
 
 fashion_mnist = tf.keras.datasets.fashion_mnist
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from tensorflow.python.keras.models import Model

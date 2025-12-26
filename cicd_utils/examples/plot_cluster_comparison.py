@@ -23,20 +23,21 @@ algorithms, this intuition might not apply to very high
 dimensional data.
 """
 
+from __future__ import annotations
+
 from maurice import patch
 
 patch()
 
 import time
 import warnings
+from itertools import cycle, islice
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 from sklearn import cluster, datasets, mixture
 from sklearn.neighbors import kneighbors_graph
 from sklearn.preprocessing import StandardScaler
-from itertools import cycle, islice
 
 np.random.seed(0)
 
@@ -189,14 +190,14 @@ for i_dataset, (dataset, algo_params) in enumerate(datasets):
             warnings.filterwarnings(
                 "ignore",
                 message="the number of connected components of the "
-                + "connectivity matrix is [0-9]{1,2}"
-                + " > 1. Completing it to avoid stopping the tree early.",
+                "connectivity matrix is [0-9]{1,2}"
+                " > 1. Completing it to avoid stopping the tree early.",
                 category=UserWarning,
             )
             warnings.filterwarnings(
                 "ignore",
                 message="Graph is not fully connected, spectral embedding"
-                + " may not work as expected.",
+                " may not work as expected.",
                 category=UserWarning,
             )
             algorithm.fit(X)

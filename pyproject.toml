@@ -41,6 +41,7 @@ dependencies = [
     "wrapt",
     "numpy",
     "scipy",
+    "pandas",
     'typing-extensions; python_version<"3.10"',
     'importlib-resources; python_version<"3.10"',
 ]
