@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "maurice"
 description = "Ship better machine learning projects, faster!"
-version = "0.1.16"
+dynamic = ["version"]
 authors = [
     { name = "Tomas Pereira de Vasconcelos" }
 ]
@@ -35,7 +35,7 @@ classifiers = [
 keywords = [
     "machine learning", "cache", "caching", "memoization", "monkey patching", "data science",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "dill",
     "wrapt",
@@ -43,29 +43,26 @@ dependencies = [
     "scipy",
     "pandas",
     'typing-extensions; python_version<"3.10"',
-    'importlib-resources; python_version<"3.10"',
 ]
 
 [project.optional-dependencies]
 sklearn = ["scikit-learn"]
-tensorflow = ["tensorflow"]
 pandas = ["pandas"]
-all = ["sklearn", "tensorflow", "pandas"]
+all = ["scikit-learn", "pandas"]
 
 [project.urls]
 Homepage = "https://github.com/tpvasconcelos/maurice"
+Documentation = "https://maurice.readthedocs.io/en/stable/"
 "Source code" = "https://github.com/tpvasconcelos/maurice"
 "Issue Tracker" = "https://github.com/tpvasconcelos/maurice/issues"
-
-# TODO: Update config based on:
-#       https://setuptools.pypa.io/en/latest/userguide/datafiles.html#subdirectory-for-data-files
-#[tool.setuptools.package-data]
-#"ridgeplot.datasets.data" = ["*.csv"]
+Changelog = "https://maurice.readthedocs.io/en/stable/reference/changelog.html"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 namespaces = false
 
-[tool.black]
-line-length = 100
-include = '\.pyi?$'
+[tool.setuptools_scm]
+# PyPi does not support _local_ versioning
+# and we want to push X.devM to TestPyPi
+# on every merge to the `main` branch
+local_scheme = "no-local-version"

@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 from typing import TYPE_CHECKING, Any
 
-# import dill
+import dill
+
 from maurice.utils import optional_import
 
 if TYPE_CHECKING:
@@ -20,6 +21,7 @@ def hash_anything(
     obj: Any,
     hash_name: str = _DFLT_HASH,
 ) -> str:
+    # TODO: explore DeepDiff's DeepHash?
     if pd and isinstance(obj, (pd.DataFrame, pd.Series, pd.Index)):
         return hash_pandas_dataframe(obj, hash_name=hash_name)
     if np and isinstance(obj, np.ndarray):
@@ -30,7 +32,7 @@ def hash_anything(
 def hash_numpy_ndarray(arr: np.ndarray, hash_name: str = _DFLT_HASH, **kwargs: Any) -> str:
     from pandas.core.util.hashing import combine_hash_arrays
 
-    hashes = (pd.util.hash_array(x, **kwargs) for x in arr)
+    hashes = (pd.util.hash_array(arr, **kwargs) for _ in [...])
     hashes_array = combine_hash_arrays(hashes, num_items=len(arr))
     return hashlib.new(hash_name, hashes_array).hexdigest()
 

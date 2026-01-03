@@ -1,20 +1,22 @@
 from __future__ import annotations
 
+import copyreg
+import json
 import logging
 from abc import ABCMeta
 from dataclasses import dataclass, field
-from functools import partial
+from functools import cached_property, partial
+from pathlib import Path
 from typing import Any
 
 import dill
 import wrapt
 
-from maurice.caching import CACHE_DIR
+from maurice._missing import MISSING, MissingType
 from maurice.hashing import hash_anything
 from maurice.types import (
     BoundMethodClassType,
     BoundMethodInstanceType,
-    BoundMethodReturnType,
     BoundMethodType,
 )
 
@@ -28,9 +30,9 @@ class ArgsKwargs:
 
 
 @dataclass
-class RunBeforeResult:
+class PreHookResult:
     run_wrapped_method: bool = True
-    run_after_callback: bool = True
+    run_post_hook: bool = True
     new_args_kwargs: ArgsKwargs | None = None
 
 
@@ -53,23 +55,41 @@ class BaseMethodWrapper(metaclass=ABCMeta):
     def _instance(self) -> BoundMethodInstanceType:
         return self.__method.__self__
 
-    def _run_before(self) -> RunBeforeResult:
-        return RunBeforeResult()
+    def _pre_hook(self) -> PreHookResult:
+        return PreHookResult()
 
-    def _run_after(self, result: BoundMethodReturnType | None) -> Any:
+    def _post_hook(self, result: Any | MissingType) -> Any:
         return result
 
     def run(self) -> Any:
-        result = None
-        run_before_result = self._run_before()
-        if run_before_result.run_wrapped_method:
-            if run_before_result.new_args_kwargs is not None:
-                args, kwargs = run_before_result.new_args_kwargs
+        # Initialize result as MISSING to detect misconfigurations.
+        # The result should be set by calling the wrapped
+        # method, by the post-hook, or by both.
+        result = MISSING
+
+        # Start by calling the pre-hook.
+        # The pre-hook result determines whether to call the wrapped method,
+        # which arguments to pass to it (if any), and whether to call the post-hook.
+        pre_hook_result = self._pre_hook()
+
+        if pre_hook_result.run_wrapped_method:
+            if pre_hook_result.new_args_kwargs is not None:
+                args = pre_hook_result.new_args_kwargs.args
+                kwargs = pre_hook_result.new_args_kwargs.kwargs
             else:
                 args, kwargs = self._args, self._kwargs
             result = self.__method(*args, **kwargs)
-        if run_before_result.run_after_callback:
-            result = self._run_after(result=result)
+
+        if pre_hook_result.run_post_hook:
+            result = self._post_hook(result)
+
+        if result is MISSING:
+            raise RuntimeError(
+                f"Misconfigured implementation of {type(self).__name__}: "
+                "the wrapped method result was not set. The result should be set "
+                "by calling the wrapped method, by the post-hook, or by both."
+            )
+
         return result
 
 
@@ -79,7 +99,7 @@ class CachingMethodWrapper(BaseMethodWrapper):
         self._save_state = save_state
 
         state_string = (
-            hash_anything(self._get_instance_state()) if self._save_state else "ignore_state"
+            hash_anything(self._get_instance_state()) if self._save_state else "_ignore_state"
         )
         self._path_to_cached_method = CACHE_DIR.joinpath(
             # path to module
@@ -93,8 +113,8 @@ class CachingMethodWrapper(BaseMethodWrapper):
             # args and kwargs hash
             hash_anything((args, kwargs)),
         )
-        self._path_to_state = self._path_to_cached_method.joinpath("state.dill")
-        self._path_to_result = self._path_to_cached_method.joinpath("result.dill")
+        self._path_to_state = self._path_to_cached_method / "state.dill"
+        self._path_to_result = self._path_to_cached_method / "result.dill"
 
     def _get_instance_state(self) -> dict:
         if hasattr(self._instance, "__getstate__"):
@@ -109,24 +129,162 @@ class CachingMethodWrapper(BaseMethodWrapper):
         else:
             self._instance.__dict__.update(state)
 
-    def _run_before(self) -> RunBeforeResult:
-        return RunBeforeResult(
+    def _pre_hook(self) -> PreHookResult:
+        return PreHookResult(
             run_wrapped_method=not self._path_to_cached_method.exists(),
         )
 
-    def _run_after(self, result: BoundMethodReturnType | None) -> Any:
-        if result is not None:
-            logger.info(f"Saving cache to: {self._path_to_cached_method}")
-            self._path_to_cached_method.mkdir(parents=True, exist_ok=False)
-            if self._save_state:
-                self._path_to_state.write_bytes(dill.dumps(self._get_instance_state()))
-            self._path_to_result.write_bytes(dill.dumps(result))
-        else:
+    def _post_hook(self, result: Any | MissingType) -> Any:
+        if result is MISSING:
             logger.info(f"Loading cache from: {self._path_to_cached_method}")
             if self._save_state:
                 self._set_instance_state(dill.loads(self._path_to_state.read_bytes()))
-            result = dill.loads(self._path_to_result.read_bytes())
+            return dill.loads(self._path_to_result.read_bytes())
+
+        logger.info(f"Saving cache to: {self._path_to_cached_method}")
+        self._path_to_cached_method.mkdir(parents=True, exist_ok=False)
+        if self._save_state:
+            self._path_to_state.write_bytes(dill.dumps(self._get_instance_state()))
+        self._path_to_result.write_bytes(dill.dumps(result))
         return result
+
+
+CACHE_DIR = Path.cwd().joinpath(".maurice_cache").absolute()
+
+
+def _get_state(obj: Any) -> dict:
+    if hasattr(obj, "__getstate__"):
+        state: dict = obj.__getstate__()
+    elif hasattr(obj, "__dict__"):
+        state = obj.__dict__
+    elif hasattr(obj, "__slots__"):
+        state = {attr: getattr(obj, attr) for attr in copyreg._slotnames()}
+    else:
+        raise TypeError(f"Object of type {type(obj)} not serializable")
+    return state
+
+
+def _set_state(obj: Any, state: dict) -> None:
+    if hasattr(obj, "__setstate__"):
+        obj.__setstate__(state)
+    elif hasattr(obj, "__dict__"):
+        obj.__dict__.update(state)
+    elif hasattr(obj, "__slots__"):
+        for attr in state:
+            setattr(obj, attr, state[attr])
+    else:
+        raise TypeError(f"Object of type {type(obj)} not serializable")
+
+
+class MethodCacheManager:
+    def __init__(
+        self,
+        method: BoundMethodType,
+        args: tuple,
+        kwargs: dict,
+        stateful: bool,
+    ) -> None:
+        self.method: BoundMethodType = method
+        self.args: tuple = args
+        self.kwargs: dict = kwargs
+        self.stateful: bool = stateful
+
+        self._initial_instance_state = _get_state(self.method.__self__)
+
+    @property
+    def instance(self) -> BoundMethodInstanceType:
+        return self.method.__self__
+
+    @cached_property
+    def state_string(self) -> str:
+        return hash_anything(self._get_instance_state()) if self.stateful else "_stateless"
+
+    @cached_property
+    def parent_dir(self) -> Path:
+        return CACHE_DIR.joinpath(
+            # path to module
+            *type(self.instance).__module__.split("."),
+            # class name
+            type(self.instance).__name__,
+            # instance state hash
+            self.state_string,
+            # instance method name
+            self.method.__name__,
+            # args and kwargs hash
+            hash_anything((self.args, self.kwargs)),
+        )
+
+    @property
+    def state(self) -> Path:
+        return self.parent_dir / "state.dill"
+
+    @property
+    def result(self) -> Path:
+        return self.parent_dir / "result.dill"
+
+    @property
+    def metadata(self) -> Path:
+        return self.parent_dir / "metadata.json"
+
+    def exists(self) -> bool:
+        return self.parent_dir.exists()
+
+    def read(self) -> Any:
+        if self.stateful:
+            self._set_instance_state(state=dill.loads(self.state.read_bytes()))
+        return dill.loads(self.result.read_bytes())
+
+    def write(self, result: Any):
+        self.parent_dir.mkdir(parents=True, exist_ok=False)
+        if self.stateful:
+            state = self._get_instance_state()
+            self.state.write_bytes(dill.dumps(state))
+        else:
+            state = None
+
+        self.result.write_bytes(dill.dumps(result))
+        self.metadata.write_text(
+            json.dumps(
+                {
+                    "method": self.method.__name__,
+                    "args": repr(self.args),
+                    "kwargs": repr(self.kwargs),
+                    "stateful": self.stateful,
+                    "state": repr(state),
+                    "state_hash": hash_anything(state),
+                    "result": repr(result),
+                    "result_hash": hash_anything(result),
+                },
+                indent=2,
+            )
+        )
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.parent_dir})"
+
+
+def run_cached_method(
+    method: BoundMethodType,
+    args: tuple,
+    kwargs: dict,
+    save_state: bool,
+) -> Any:
+    cache = MethodCacheManager(
+        method=method,
+        args=args,
+        kwargs=kwargs,
+        stateful=save_state,
+    )
+
+    if cache.exists():
+        logger.info(f"Loading cache from: {cache}")
+        return cache.read()
+
+    result = method(*args, **kwargs)
+    logger.info(f"Saving cache to: {cache}")
+    cache.write(result)
+
+    return result
 
 
 def _caching_method_wrapper(
@@ -135,19 +293,30 @@ def _caching_method_wrapper(
     args: tuple,
     kwargs: dict,
     save_state: bool,
+    cmw_class: type[CachingMethodWrapper],
 ) -> Any:
-    return CachingMethodWrapper(
-        method=method, args=args, kwargs=kwargs, save_state=save_state
-    ).run()
+    return run_cached_method(
+        method=method,
+        args=args,
+        kwargs=kwargs,
+        save_state=save_state,
+    )
+    # return cmw_class(
+    #     method=method,
+    #     args=args,
+    #     kwargs=kwargs,
+    #     save_state=save_state,
+    # ).run()
 
 
-def patch_method_by_name(name: str, cls: type) -> None:
-    pass
-
-
-def patch_method_with_caching(name: str, cls: BoundMethodClassType, save_state: bool) -> None:
+def patch_method_with_caching(
+    name: str,
+    cls: BoundMethodClassType,
+    save_state: bool,
+    cmw_class: type[CachingMethodWrapper] = CachingMethodWrapper,
+) -> None:
     wrapt.wrap_function_wrapper(
-        module=cls.__module__,
-        name=f"{cls.__name__}.{name}",
-        wrapper=partial(_caching_method_wrapper, save_state=save_state),
+        target=cls,
+        name=name,
+        wrapper=partial(_caching_method_wrapper, save_state=save_state, cmw_class=cmw_class),
     )

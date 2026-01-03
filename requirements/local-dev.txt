@@ -3,7 +3,6 @@
 
 # extras (TODO: infer from .[...] above)
 scikit-learn
-tensorflow
 pandas
 matplotlib
 

@@ -25,10 +25,6 @@ dimensional data.
 
 from __future__ import annotations
 
-from maurice import patch
-
-patch()
-
 import time
 import warnings
 from itertools import cycle, islice
@@ -39,7 +35,15 @@ from sklearn import cluster, datasets, mixture
 from sklearn.neighbors import kneighbors_graph
 from sklearn.preprocessing import StandardScaler
 
+import maurice
+from maurice.utils import _setup_debug_logging
+
+maurice.patch()
+_setup_debug_logging()
+
 np.random.seed(0)
+
+t_start = time.time()
 
 # ============
 # Generate datasets. We choose the size big enough to see the scalability
@@ -162,7 +166,7 @@ for i_dataset, (dataset, algo_params) in enumerate(datasets):
     )
     average_linkage = cluster.AgglomerativeClustering(
         linkage="average",
-        affinity="cityblock",
+        # affinity="cityblock",
         n_clusters=params["n_clusters"],
         connectivity=connectivity,
     )
@@ -199,6 +203,21 @@ for i_dataset, (dataset, algo_params) in enumerate(datasets):
                 message="Graph is not fully connected, spectral embedding"
                 " may not work as expected.",
                 category=UserWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="divide by zero.*",
+                category=RuntimeWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="invalid value encountered in matmul.*",
+                category=RuntimeWarning,
+            )
+            warnings.filterwarnings(
+                "ignore",
+                message="overflow encountered in matmul.*",
+                category=RuntimeWarning,
             )
             algorithm.fit(X)
 
@@ -249,5 +268,11 @@ for i_dataset, (dataset, algo_params) in enumerate(datasets):
             horizontalalignment="right",
         )
         plot_num += 1
+
+t_end = time.time()
+print(f"Total time: {t_end - t_start}")
+# Raw unpatched:        7.30s
+# Patched (cold-start): 7.56s
+# Patched (cache hit):  0.58s
 
 plt.show()

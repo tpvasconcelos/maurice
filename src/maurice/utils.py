@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sys
 from importlib import import_module
 from typing import TYPE_CHECKING
@@ -49,3 +50,21 @@ def optional_import(name: str) -> ModuleType | None:
     #     _not_importable.add(name)
     #     logger.exception(f"Error importing optional module '{name}'")
     return None
+
+
+def _setup_debug_logging(level=logging.DEBUG) -> None:
+    for handler in (root_logger := logging.getLogger()).handlers[:]:
+        root_logger.removeHandler(handler)
+
+    logger = logging.getLogger("maurice")
+    logger.setLevel(level)
+    logger.handlers.clear()
+
+    handler = logging.StreamHandler()
+    fmt = "[%(levelname)-7s][%(pathname)s:%(lineno)d] %(message)s"
+    handler.setFormatter(logging.Formatter(fmt))
+
+    handler.setLevel(level)
+    logger.addHandler(handler)
+
+    logger.debug(f"Finished setting up {logger} with {handler}")
