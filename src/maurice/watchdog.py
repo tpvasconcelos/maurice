@@ -63,12 +63,16 @@ class StateChangeResult:
         return [c for c in self.changes if c.path == path or c.name == path]
 
     def __repr__(self):
-        lines = [f"StateChangeResult(method='{self.method_name}', changes={len(self.changes)})"]
-        for change in self.changes:
-            lines.append(f"  {change}")
+        cls_name = self.__class__.__name__
         if self.exception_raised:
-            lines.append(f"  EXCEPTION: {self.exception_raised}")
-        return "\n".join(lines)
+            return f"<{cls_name} method={self.method_name!r} exception={self.exception_raised!r}>"
+        if not self.has_changes:
+            return f"<{cls_name} method={self.method_name!r} (no changes)>"
+        lines = f"<{cls_name} method={self.method_name!r} ({len(self.changes)} changes):"
+        for change in self.changes:
+            lines += f"\n  {change}"
+        lines += "\n>"
+        return lines
 
 
 class StateChangeDetector:
@@ -97,7 +101,7 @@ class StateChangeDetector:
         deep: bool = True,
         max_depth: int = 10,
         ignore_private: bool = False,
-        ignore_dunder: bool = True,
+        ignore_dunder: bool = False,
         track_collections: bool = True,
     ):
         self._obj = obj
