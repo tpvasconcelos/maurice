@@ -47,6 +47,38 @@ class TestClassLevelState:
         assert after == before + 1  # Class var did change
         assert result.has_changes  # But detector should see it
 
+    @pytest.mark.xfail(reason="__getattr__ lazy loading to class-level cache not tracked")
+    def test_getattr_lazy_load_detected(self):
+        """XFAIL: Lazy loading via __getattr__ that populates class-level cache should be detected."""
+
+        class LazyLoader:
+            # Class-level cache shared by all instances - not tracked
+            _class_cache = {}
+
+            def __init__(self):
+                self.instance_id = id(self)
+
+            def __getattr__(self, name):
+                if name.startswith("_"):
+                    raise AttributeError(name)
+                cache_key = (self.instance_id, name)
+                if cache_key not in LazyLoader._class_cache:
+                    LazyLoader._class_cache[cache_key] = f"loaded_{name}"
+                return LazyLoader._class_cache[cache_key]
+
+            def access(self, name):
+                return getattr(self, name)
+
+        obj = LazyLoader()
+        detector = StateChangeDetector(obj)
+        result = detector.call("access", "test_attr")
+
+        assert result.return_value == "loaded_test_attr"
+        # The cache WAS populated at class level
+        assert (obj.instance_id, "test_attr") in LazyLoader._class_cache
+        # But class-level state changes are not tracked
+        assert result.has_changes
+
     @pytest.mark.xfail(reason="Class method modifications not tracked")
     def test_class_method_addition_detected(self):
         """XFAIL: Adding methods to a class at runtime should be detected."""
@@ -284,6 +316,50 @@ class TestGlobalState:
         assert after == before + 1  # Global state did change
         assert result.has_changes  # But detector should see it
 
+    @pytest.mark.xfail(
+        reason="Observer state changes not tracked when observer not stored in subject"
+    )
+    def test_observer_notification_detected_but_changes_in_global_state_arent(self):
+        """XFAIL: State changes in external observers (not stored in subject) should be detected."""
+        # External registry that holds observers - not part of the subject
+        external_registry = {"observers": []}
+
+        class Observer:
+            def __init__(self):
+                self.notifications = []
+
+            def notify(self, message):
+                self.notifications.append(message)
+
+        class Subject:
+            def __init__(self):
+                # Note: observers are NOT stored in subject, only in external registry
+                self.message_count = 0
+
+            def add_observer(self, obs):
+                external_registry["observers"].append(obs)
+
+            def notify_all(self, message):
+                self.message_count += 1
+                for obs in external_registry["observers"]:
+                    obs.notify(message)
+
+        observer = Observer()
+        subject = Subject()
+        subject.add_observer(observer)
+
+        detector = StateChangeDetector(subject)
+        result = detector.call("notify_all", "test message")
+
+        # Observer WAS notified (state changed externally)
+        assert "test message" in observer.notifications
+        # Subject's message_count change IS detected
+        assert any(c.name == "message_count" for c in result.changes)
+        # But observer's state change is NOT detected because observer
+        # is not reachable from the subject's attributes
+        observer_changes = [c for c in result.changes if "notification" in c.path.lower()]
+        assert len(observer_changes) > 0  # This will fail - observer state not tracked
+
     @pytest.mark.xfail(reason="Module attribute changes not tracked")
     def test_module_attribute_change_detected(self):
         """XFAIL: Module attribute changes should be detected."""
@@ -360,26 +436,42 @@ class TestWeakReferences:
         assert after == before + 1
         assert result.has_changes
 
-    @pytest.mark.xfail(reason="WeakValueDictionary changes not fully tracked")
+    @pytest.mark.xfail(
+        reason="WeakValueDictionary auto-removal when reference is deleted not tracked"
+    )
     def test_weakvaluedictionary_change_detected(self):
-        """XFAIL: WeakValueDictionary state changes should be detected."""
+        """XFAIL: WeakValueDictionary entry disappearing due to weak ref GC should be detected."""
+        import gc
+
+        class Item:
+            pass
+
+        # Store item reference externally so we can control its lifetime
+        external_refs = {"item": Item()}
 
         class Registry:
             def __init__(self):
                 self.items = weakref.WeakValueDictionary()
 
-            def register(self, key, obj):
-                self.items[key] = obj
-
-        class Item:
-            pass
+            def delete_external_ref(self):
+                """Delete the external reference, causing the weak ref to be collected."""
+                del external_refs["item"]
+                gc.collect()
 
         registry = Registry()
-        detector = StateChangeDetector(registry)
-        item = Item()
-        result = detector.call("register", "key1", item)
-
+        # Register the item - the only strong reference is in external_refs
+        registry.items["key1"] = external_refs["item"]
         assert "key1" in registry.items
+
+        detector = StateChangeDetector(registry)
+
+        # This method deletes the external reference, causing GC to remove the entry
+        result = detector.call("delete_external_ref")
+
+        # The item was removed from the WeakValueDictionary during the method call
+        assert "key1" not in registry.items
+        # The detector should see this change, but deep copying WeakValueDictionary
+        # doesn't preserve the weak reference semantics properly
         assert result.has_changes
 
 
@@ -690,78 +782,6 @@ class TestExternalResources:
             os.unlink(path)
 
 
-# ============== OBSERVER PATTERN STATE ==============
-
-
-class TestObserverPattern:
-    """Tests for observer/subscriber patterns."""
-
-    @pytest.mark.xfail(reason="Observer state changes not tracked")
-    def test_observer_notification_detected(self):
-        """XFAIL: State changes in observers should be detected."""
-
-        class Observer:
-            def __init__(self):
-                self.notifications = []
-
-            def notify(self, message):
-                self.notifications.append(message)
-
-        class Subject:
-            def __init__(self):
-                self.observers = []
-
-            def add_observer(self, obs):
-                self.observers.append(obs)
-
-            def notify_all(self, message):
-                for obs in self.observers:
-                    obs.notify(message)
-
-        observer = Observer()
-        subject = Subject()
-        subject.add_observer(observer)
-
-        detector = StateChangeDetector(subject)
-        result = detector.call("notify_all", "test message")
-
-        assert "test message" in observer.notifications
-        assert result.has_changes  # Should detect observer state change
-
-
-# ============== LAZY LOADING STATE ==============
-
-
-class TestLazyLoading:
-    """Tests for lazy-loaded attributes."""
-
-    @pytest.mark.xfail(reason="__getattr__ side effects may not be tracked properly")
-    def test_getattr_lazy_load_detected(self):
-        """XFAIL: Lazy loading via __getattr__ side effects should be detected."""
-
-        class LazyLoader:
-            def __init__(self):
-                self._cache = {}
-
-            def __getattr__(self, name):
-                if name.startswith("_"):
-                    raise AttributeError(name)
-                if name not in self._cache:
-                    self._cache[name] = f"loaded_{name}"
-                return self._cache[name]
-
-            def access(self, name):
-                return getattr(self, name)
-
-        obj = LazyLoader()
-        detector = StateChangeDetector(obj)
-        result = detector.call("access", "test_attr")
-
-        assert result.return_value == "loaded_test_attr"
-        assert "test_attr" in obj._cache
-        assert result.has_changes
-
-
 # ============== SLOT INHERITANCE TESTS ==============
 
 
@@ -848,54 +868,68 @@ class TestAsyncState:
 class TestSpecialMethodSideEffects:
     """Tests for side effects in special methods."""
 
-    @pytest.mark.xfail(reason="Side effects in __repr__ not tracked")
-    def test_repr_side_effect_detected(self):
-        """XFAIL: Side effects in __repr__ during comparison should be detected."""
+    @pytest.mark.xfail(reason="Side effects in __eq__ during comparison not tracked")
+    def test_eq_side_effect_detected(self):
+        """XFAIL: Side effects in __eq__ during snapshot comparison should be detected."""
+        # External state that gets modified during __eq__ comparison
+        comparison_log = {"count": 0}
 
-        class SneakyRepr:
-            call_count = 0
-
+        class SneakyEq:
             def __init__(self):
                 self.value = 0
 
-            def __repr__(self):
-                SneakyRepr.call_count += 1
-                return f"Sneaky({self.value})"
+            def __eq__(self, other):
+                # Side effect: modifies external state during comparison
+                comparison_log["count"] += 1
+                if isinstance(other, SneakyEq):
+                    return self.value == other.value
+                return NotImplemented
 
             def do_nothing(self):
                 pass
 
-        obj = SneakyRepr()
+        obj = SneakyEq()
         detector = StateChangeDetector(obj)
-        before = SneakyRepr.call_count
+        before_comparisons = comparison_log["count"]
         result = detector.call("do_nothing")
-        after = SneakyRepr.call_count
+        after_comparisons = comparison_log["count"]
 
-        # __repr__ may be called during snapshot/comparison
-        if after > before:
-            assert result.has_changes  # Should track class-level side effect
+        # __eq__ IS called during _compare_values when checking old == new
+        assert after_comparisons > before_comparisons
+        # But the external state change (comparison_log) is not tracked
+        # because it's not an attribute of the tracked object
+        assert result.has_changes
 
-    @pytest.mark.xfail(reason="Side effects in __hash__ not tracked")
+    @pytest.mark.xfail(reason="Side effects in __hash__ during set operations not tracked")
     def test_hash_side_effect_detected(self):
-        """XFAIL: Side effects in __hash__ should be detected."""
+        """XFAIL: Side effects in __hash__ during set/dict operations should be detected."""
+        # External state that gets modified during __hash__
+        hash_log = {"count": 0}
 
         class SneakyHash:
-            call_count = 0
+            def __init__(self):
+                self.value = 0
 
             def __hash__(self):
-                SneakyHash.call_count += 1
+                # Side effect: modifies external state during hashing
+                hash_log["count"] += 1
                 return id(self)
+
+            def __eq__(self, other):
+                return isinstance(other, SneakyHash) and id(self) == id(other)
 
             def trigger_hash(self):
                 {self}  # Creates a set, calling __hash__
 
         obj = SneakyHash()
         detector = StateChangeDetector(obj)
-        before = SneakyHash.call_count
+        before = hash_log["count"]
         result = detector.call("trigger_hash")
-        after = SneakyHash.call_count
+        after = hash_log["count"]
 
+        # __hash__ was called during the method
         assert after > before
+        # But the external state change is not tracked
         assert result.has_changes
 
 
